@@ -1,0 +1,1226 @@
+---
+title: "Problems in Probability and Finance"
+author: "Edgar Soto"
+format: html
+editor: visual
+---
+
+Do you want to take your probability skills to the next level? This course will help get you there, using problem-based learning with probability puzzles as the framework. As you are guided through their solutions, you will gain coding tools and general strategies for solving probability problems that you might encounter in many other situations. Organized by theme, the course begins with classic problems like the Birthday Problem and Monty Hall, and ends with puzzles that involve poker like Texas Hold'em and the World Series of Poker!
+
+**Libraries**
+
+```{r}
+#| label: Libraries
+#| echo: true
+#| message: false
+#| warning: false
+library(stats) 
+library(tidyverse)
+```
+
+# Probability Problems DataCamp
+
+## Chapter 1: Classic Problems
+
+### **Combinatorics**
+
+To assist with our tasks, we will use some built-in **combinatorics** functions. The factorial function calculates the product of a given number and each integer below it, down to 1. The choose function will calculate combinations for us. For example, "choose 5 3", also pronounced "5 choose 3", is the number of ways to choose 3 objects out of 5, and follows this formula using factorials.
+
+```{r}
+factorial(3)
+
+3 * 2 * 1
+```
+
+**k choose n**
+
+```{r}
+choose(5,3)
+```
+
+$$
+\binom{n}{k} = \frac{n!}{k!(n - k)!}
+$$ {#eq-binomial coefficient formula (n choose k)}
+
+### **Simulations**
+
+A simulation is a random generation of a process that mimics the actual situation of interest. For example, we can select an object at random using the `sample()` function, or simulate a coinflip using the `rbinom()` function. To repeat a process several times, we can use the replicate function or a loop, such as for or while. Finally, we will often set a seed using the set dot seed function. Computers generate pseudo-random values based on the seed as a starting point and a random number generator algorithm. The code will still run without setting the seed, but doing so leads to the same output each time the code is run. In this course, setting the seed is useful for answer checking, and in real-world applications, it ensures replicability.
+
+-   Select an object at random - `sample()`
+-   Simulate binomial phenomena - `rbinom()`
+-   Repeat a process
+    -   `replicate()`
+    -   `for` loop
+    -   `while` loop
+-   Set a seed - `set.seed()`
+
+### **More details on for loops**
+
+Consider this for loop, which uses the sample function to draw two numbers at random from the set of integers one to six and then sum them, a process equivalent to rolling two ordinary 6-sided dice.
+
+```{r}
+for(i in 1:10){ 
+  sum(sample(x = c(1, 2, 3, 4, 5, 6),
+             size = 2,
+             replace = TRUE))
+  }
+```
+
+With the loop, it is performed 10 times. Note that in the function call, we must specify the option `replace = TRUE` so that when a given number is selected on the first draw, it is still possible to be selected on the next draw, thus mimicking the behavior of two independent dice.
+
+Additionally, we may want to store these results. Here, we define a variable called rolls as a vector of 10 NA values, and then the for loop fills them in as the index i goes from 1 to 10.
+
+```{r}
+rolls <- rep(NA, 10)
+for(i in 1:10){
+  rolls[i] <- sum(sample(x = c(1, 2, 3, 4, 5, 6),
+                         size = 2,
+                         replace = TRUE))
+}
+rolls
+```
+
+### **Functions**
+
+Some puzzles will require writing functions. Consider the following function, which takes an input value, cubes it, and returns the answer. Running this function on the value 10 produces the answer 1000.
+
+```{r}
+example_function <- function(x){
+  y = x^3
+  return(y)
+}
+
+example_function(10)
+```
+
+Let's write a simple function to do a typical task in this course. Here, our function will simulate the rolling of dice and report the sum of the values that appear. Our function will allow the user to choose how many dice they would like to roll.
+
+Although R cannot physically roll dice for us, we can simulate an equivalent process by taking random draws from the set of numbers {1, 2, 3, 4, 5, 6} with equal probability. Using the `sample` function is one way to accomplish this.
+
+```{r}
+# Set seed to 1
+set.seed(1)
+
+# Write a function to roll k dice
+roll_dice <- function(k){
+  all_rolls <- sample(c(1,2,3,4,5,6), 
+                      size = k, 
+                      replace = TRUE)
+  final_answer <- sum(all_rolls)
+  return(final_answer)
+}
+
+# Run the function to roll five dice
+roll_dice(5)
+```
+
+Let's write a `for` loop to repeat a process several times, incrementally storing the results in a vector. We will use the function that we created in the previous exercise to roll dice.
+
+```{r}
+# Initialize a vector to store the output
+output <- rep(NA, 10000)
+
+# Loop for 10000 iterations
+for(i in 1:10000){
+  # Fill in the output vector with the result from rolling two dice
+  output[i] <- roll_dice(2)
+}
+```
+
+### Birthday Problem
+
+**Simulation of a single n**
+
+With a room of size 50, let us start by finding a solution via simulation.
+
+In this code, `n` will represent our room size and `match` will be our counter for the number of times at least one matching birthday occurred in the simulation, which starts at 0 and should increment in each iteration where a match occurs.
+
+```{r}
+set.seed(1)
+n <- 50
+match <- 0
+
+# Simulate 10000 rooms and check for matches in each room
+for(i in 1:10000){
+  birthdays <- sample(x = 365, size = n, replace = TRUE)
+  if(length(unique(birthdays)) < n){
+    match <- match + 1
+  } 
+}
+
+# Calculate the estimated probability of a match and print it
+p_match <- match / 10000
+print(p_match)
+```
+
+d
+
+```{r}
+# Define the vector of sample sizes
+room_sizes <- c(1:50)
+
+# Run the pbirthday function within sapply on the vector of sample sizes
+match_probs <- sapply(room_sizes, pbirthday)
+
+# Create the plot
+plot(match_probs ~ room_sizes)
+```
+
+### **Monty Hall**
+
+**Win probability with "stick"**
+
+Let's write some code to simulate the Monty Hall game show. In this exercise, we will have the contestant choose Door #1, "stick" every time, and find the relative frequency of winning after 10000 iterations of the game.
+
+First, we will code just one iteration. Then, we will incorporate this into a `for` loop to run the process repeatedly in order to obtain a simulated estimate of the true win probability, using the idea of a counter we discussed previously.
+
+```{r}
+set.seed(145)
+# Define counter, doors
+win_count <- 0
+doors <- c(1, 2, 3)
+
+# Run 10000 iterations of the game
+for(i in 1:10000){
+  prize <- sample(x = doors, size = 1)
+  initial_choice <- 1
+  if(initial_choice == prize){
+    win_count <- win_count + 1
+  }
+}
+
+# Print the answer
+print(win_count / 10000)
+```
+
+```{r}
+reveal_door <- function(doors, prize, initial_choice){
+  if(prize == initial_choice){
+    # Sample at random from the two remaining doors
+    reveal <- sample(x = doors[-c(prize)], size = 1)
+  } else {
+    
+    # When the prize and initial choice are different, reveal the only remaining door 
+    reveal <- doors[-c(prize, initial_choice)]
+  }  
+}
+```
+
+```{r}
+# Initialize the win counter
+win_count <- 0
+
+for(i in 1:10000){
+  prize <- sample(doors,1)
+  initial_choice <- 1
+  reveal <- reveal_door(doors, prize, initial_choice)
+  final_choice <- doors[-c(initial_choice, reveal)]
+  if(final_choice == prize){
+    
+    # Increment the win counter
+    win_count <- win_count + 1
+  }
+}
+
+# Print the estimated probability of winning
+print(win_count / 10000)
+```
+
+## Chapter 2: Games with Dice
+
+### **Multiplication Rule**
+
+Let's start by reviewing some basic rules of **combinatorics**. The ***multiplication rule*** states that for a collection of independent processes, the total number of possibilities is the product of each individual number of possibilities.
+
+$$
+\text{Total Outcomes} = n_1 \times n_2 \times \dots \times n_k
+$$ {#eq-Multiplication Rule of Combinatronics}
+
+Where:
+
+-   *n_i* is the number of choices for the (i)-th step.
+-   *k* is the number of steps.
+
+### Permutation
+
+Permutations can be thought of as the number of ways that k objects correspond to n possibilities, with each possibility being used once at most. When n possibilities and k objects are equal, the calculation simply becomes n factorial.
+
+$$
+P(n, r) = \frac{n!}{(n - r)!}
+$$ {#eq-Permutation}
+
+Consider rolling three dice and calculating the number of ways that they can land as 2, 3 and 4. This would be 3 factorial, and we can use the factorial function to solve it.
+
+$$
+3 * 2 * 1 = \frac{3!}{(3 - 3)!}
+$$
+
+```{r}
+factorial(3)
+```
+
+### Binomial Coefficient Formula
+
+The n choose k is called ...\
+$$
+\binom{n}{k} = \frac{n!}{k!(n - k)!}
+$$
+
+### Addition Rule
+
+The addition rule tells us that we can simply add probabilities if we want the overall probability of either of two events occurring and the events are disjoint, meaning they cannot both occur in any given trial.
+
+$$
+P(A \cup B) = P(A) + P(B)
+$$ {#eq-Addition Rule of Combinatronics}
+
+Where:
+
+-   \(A\) and (B) are disjoint (mutually exclusive) events. (i.e. $A \cap B = \emptyset$)
+-   P(A $\cup$ B) is the probability that either event (A) or event (B)
+
+For example, suppose we want to know the probability of rolling either 2, 3, 4 or 3, 4, 5 with three dice. We know that the number of ways to roll 2, 3, 4 is 3 factorial. So the probability of this event is 3 factorial divided by 6 cubed since there are 6 cubed total configurations.
+
+The probability of rolling 3, 4, 5 is the same. Since rolling 2, 3, 4 and 3, 4, 5 cannot occur at the same time, we add the two probabilities to get our answer.
+
+```{r}
+#| label: Addition Rule Example 1
+#| echo: false
+#| warning: false
+
+factorial(3) / 6^3 + factorial(3) / 6^3
+
+```
+
+As another example, let's find the probability of **all three dice landing on the same denomination**. For each denomination, there is one way to have all three dice land on it. **The addition rule extends to multiple disjoint events**, so for six denominations, we add one over six to the third, six times.
+
+```{r}
+#| label: Addition Rule Example 2
+#| echo: false
+#| warning: false
+
+1/6^3 + 1/6^3 + 1/6^3 + 1/6^3 + 1/6^3 + 1/6^3
+```
+
+### **Combining Rules**
+
+These concepts can be combined. Suppose we roll 10 dice and want to count the number of ways that five will be one denomination and the other five will be another denomination. The number of possible denominations is a permutation with n equals 6 and **k equals 2** since there are 6 denominations total, and **two groups of dice that will each have one distinct denomination.** Following the permutation formula, we can code this as 6 factorial divided by 4 factorial.
+
+```{r}
+n_denom <- factorial(6) / factorial(6 - 2)
+n_denom
+```
+
+The number of groupings is the number of ways to choose 5 out of 10, times the number of ways to choose the remaining five due to the multiplication rule. This is 10 choose 5 times 5 choose 5, although 5 choose 5 is simply 1. To obtain the answer we then use the multiplication rule on these quantities.
+
+```{r}
+n_grouping <- choose(10,5) * choose(5,5)
+  
+n_grouping
+```
+
+To obtain the answer we then use the multiplication rule on these quantities.
+
+```{r}
+# Number of dice = 10
+# Different denominations = 2
+# Number of dice with the same denomination = 5
+
+n_total <- n_denom * n_grouping
+n_total
+```
+
+### Yahtzee
+
+Let us calculate the probability of obtaining a "Yahtzee" in a single roll of the five dice. A Yahtzee occurs when all five dice are of the same denomination. Any of the six denominations counts as a Yahtzee. For example, all 1s is a Yahtzee, as is all 4s.
+
+```{r}
+#| label: Probability of a Yahtzee
+
+# Calculate the size of the sample space
+s_space <- 6^5
+
+# Calculate the probability of a Yahtzee
+p_yahtzee <- 1 / s_space + 1 / s_space + 1 / s_space + 1 / s_space + 1 / s_space + 1 / s_space
+
+# Print the answer
+print(p_yahtzee)
+
+# or ---
+
+1/6^5 + 1/6^5 + 1/6^5 + 1/6^5 + 1/6^5 + 1/6^5
+```
+
+A large straight occurs when the five dice land on consecutive denominations, specifically either {1,2,3,4,5} or {2,3,4,5,6}.
+
+```{r}
+
+s_space <- 6^5
+
+# Calculate the probabilities
+p_12345 <- factorial(5) / s_space
+p_23456 <- factorial(5) / s_space
+p_large_straight <- p_12345 + p_23456
+
+# Print the large straight probability
+print(p_large_straight)
+```
+
+A full house occurs when three of the dice are of one denomination, and the remaining two dice are of another denomination. In other words, it consists of a "set of three" and "a pair." An example is {2,2,2,5,5}.
+
+```{r}
+s_space <- 6^5
+
+# Calculate the number of denominations possible
+n_denom <- factorial(6) / factorial(4)
+
+# Calculate the number of ways to form the groups
+n_groupings <- choose(n = 5, k = 3) * choose(n = 2, k = 2)
+
+# The number of ways to choose an equal group of 3 dices out of the total number of possibilities that are 5 dices.
+
+# First n = 5 because is the number of dice 
+
+# The number of ways to choose an equal group of 2 dices out of the total number of possibilities left, that is 5 - 3 dices.
+
+# Second n = 2 because is the remaining dices to choose from in the set of 5 dice.
+
+# Calculate the total number of full houses
+n_full_house <- n_denom * n_groupings
+
+# Calculate and print the answer
+p_full_house <- n_full_house / s_space
+print(p_full_house)
+```
+
+### Settlers of Catan
+
+...
+
+## Chapter 3: Inspired by the Web
+
+The puzzles in this chapter were inspired by ideas encountered on the internet. In order to solve them, you will learn to combine tools such as nested for loops, and the functions round, identical, and sapply.
+
+### **Factoring a Quadratic**
+
+**What's the probability that a quadratic will factor?**
+
+In this first puzzle our question is, given random integers a, b, and c in a quadratic equation, what is the probability that the quadratic will factor? This was posed by Bob Lochel, a math and statistics teacher at a high school outside of Philadelphia, who runs a blog called mathcoachblog.
+
+**Factoring a quadratic**
+
+Consider the expression x squared plus 3 x plus 2. In this case, a is 1, b is 3, and c is 2, representing the numeric coefficients attached to x squared, x, and the constant, respectively. Using elementary algebra, we can factor this quadratic into the quantity x plus 2 times x plus 1. So, this quadratic is factorable. How would we write code to check whether any given quadratic is factorable?
+
+**Quadratic formula**
+
+The answer lies in the quadratic formula, which gives the solutions to the equation where the quadratic is set equal to 0. We define a quadratic as factorable if the solutions are rational numbers, meaning that they can be expressed as the ratio of two integers. First, we note the quantity known as the discriminant, which is the expression within the square root, b squared minus 4 times a c. If the discriminant is negative, the solutions are imaginary and therefore not rational.
+
+**Using the discriminant**
+
+We can determine whether the discriminant is negative as our first check, using an if statement as shown. We can also code this with variable names instead of specific numeric values.
+
+**Is it a perfect square?**
+
+Next, we note that the solutions will be rational if and only if the discriminant is a perfect square, meaning that it can be expressed as the product of a whole number with itself. To check whether the discriminant is a perfect square, we can use the round function, which rounds its input to the nearest integer. Thus, we can check whether the rounded value is equal to the original value. If they are equal, the original value is an integer, and if not, the original value is not an integer and the equality check will return FALSE. Here, we run this check on the square root of the discriminant from our example quadratic equation. Note that R has a function called is dot integer, whose name suggests that it can accomplish this for us as well. However, this function is checking for the internal representation of the value, which is not of type integer by default, so we cannot use this function here.
+
+**The else conditional**
+
+We can also specify through code that a section of code should only be performed if a previous condition was false. Consider the following code, where we evaluate the square root of a value only after it is confirmed that the value is positive. We do this using the else conditional, as shown here. If we did not first check whether the value was positive, asking R to take the square root of a negative value would trigger a warning message and interfere with our operations.
+
+**Nested for loops**
+
+Nested for loops can also be convenient here. Suppose we want to perform an operation for every pair of integers from 1 to 10. We can accomplish this by writing two for loops, each with an index from 1 to 10. Although i and j are typically used as indices, they can also be used directly as variables in any desired operations, as shown here.
+
+**Write a function to check factorability**
+
+```{r}
+
+
+is_factorable <- function(a,b,c){
+  # Check whether solutions are imaginary
+  if(b^2 - 4*a*c < 0){
+    return(FALSE)
+  # Designate when the next section should run
+  } else {
+    sqrt_discriminant <- sqrt(b^2 - 4*a*c) 
+    # return TRUE if quadratic is factorable
+    return(TRUE)    
+  }
+}
+```
+
+**Simulate the factorable probability**
+
+```{r}
+
+
+counter <- 0
+
+# Nested for loop
+for(a in c(1:100)){
+  for(b in c(1:100)){
+    for(c in c(1:100)){
+      # Check whether factorable
+      if(is_factorable(a,b,c) == TRUE){
+        counter <- counter + 1
+      }
+    }
+  }
+}
+
+print(counter / 100^3)
+```
+
+### **Four Digit iPhone Passcodes**
+
+Perhaps counter-intuitively, if your four-digit passcode only has three distinct digits with one repeated digit, instead of four distinct digits, the probability of a thief successfully guessing your passcode based on the smudge marks on your screen is decreased. This puzzle could be solved using **combinatorics**, but let's learn to solve it using simulation. In this lesson, we will learn new ways to use the `sample()` function and introduce the `identical()` function.
+
+```{r}
+
+
+passcode <- c(4,3,5,9)
+
+counter_4DPSW <- 0
+
+# Store known values 
+values <- c(3,4,5,9)
+
+for(i in 1:10000){
+  # Create the guess
+  guess <- sample(values)
+  
+  # Check condition 
+  if(identical(guess, passcode)){
+    counter_4DPSW <- counter_4DPSW + 1
+  }
+}
+
+print(counter/10000)
+print(1 / factorial(4))
+```
+
+Excellent! Note that your answer is pretty close to the theoretical answer of **1/(4!), or 0.0417.**
+
+### **Sign Error Cancellations**
+
+Assuming no other sources of error, if the student has less than a 50% percent chance of making a sign error on each step of the problem, do they have a greater than 50% chance of getting the problem correct in the end?
+
+`n` represents the number of iterations we want to simulate, `size` represents the number of steps in the problem, and `prob` representing the probability of making a sign error on each step. This output represents 10 different trials of completing a math problem with 5 steps, with each step having a 0.4 probability of making a sign error. **The outputted numbers represent the number of sign errors made on each of the 10 trials.**
+
+```{r}
+rbinom(n = 10, size = 5, prob = 0.4)
+```
+
+Then, we want to know if each value is even since this would result in a correct answer under the setup of this puzzle. Recall the round function, which is used here since a value is even if its division by 2 results in an integer.
+
+```{r}
+#| label: Mean of Boolean. Sign Error Cancellations
+
+mean_prob <- c(TRUE, TRUE, TRUE, FALSE)
+mean(mean_prob)
+```
+
+The `sapply` function can be used to run a function, specified by the argument `FUN`, on each element of a vector, specified by the argument `X`.
+
+Here we demonstrate with the `rbinom` function, which requires the arguments `n`, `size`, and `prob`. We want to simulate something resembling a binomial situation, but with different success probabilities on each step, since the student has a different probability of making a sign error on each step of the problem. We specify those probabilities to `sapply` as `X`. We specify `n` and `size` after the `FUN` argument, **setting them each as 1** to run one iteration of the 4 trials, each with the different success probabilities specified.
+
+The output shows the results of each step from one math problem. Zero indicates that a sign error was not made on that step, and 1 indicates that a sign error was made on that step. To determine how many steps had a sign error, we use the sum function on the result.
+
+```{r}
+#| label: sapply and sum. Sign Error Cancellations
+
+set.seed(348)
+
+result_signerror <- sapply(X = c(0.25, 0.5, 0.75, 0.95), 
+                           rbinom, 
+                           n = 1, 
+                           size = 1)
+print(result_signerror)
+print(sum(result_signerror))
+```
+
+The `round()` function
+
+```{r}
+#| label: Store the 0 and 1 as True and False to count even numbers. Sign Error Cancellations
+
+set.seed(348)
+
+# Run 10000 iterations, 0.1 sign switch probability
+switch_a <- rbinom(n = 10000, 
+                   size = 3, 
+                   prob = 0.1)
+
+mean(round(switch_a/2) == switch_a / 2)
+```
+
+**Now lets solve the puzzle!**
+
+```{r}
+#| label: Understanding the steps of the function to solve the Sign Error Cancellations
+
+set.seed(348)
+
+each_switch <- sapply(X = c(0.49, 0.01), 
+                      FUN = rbinom, 
+                      n = 1, 
+                      size = 1)
+
+num_switches <- sum(each_switch)
+
+print(each_switch)
+print(num_switches)
+
+num_switches/2 == round(num_switches/2)
+```
+
+```{r}
+#| label: Final Function of Sign Error Cancellations
+
+set.seed(348)
+
+counter_3f = 0
+
+for(i in 1:10000){
+  
+  each_switch <- sapply(X = c(0.49, 0.01), FUN = rbinom, n = 1, size = 1)
+  
+  num_switches <- sum(each_switch)
+  
+  if(num_switches/2 == round(num_switches/2))
+    
+    counter_3f <- counter_3f + 1
+  
+}
+
+print(counter_3f / 10000)
+```
+
+## Chapter 4: Poker Games
+
+This chapter explores questions in poker, including the most often televised version of Texas Hold'em. We will learn to code for win probabilities with any given number of *outs*, and also explore a more theoretical model of poker known as the von Neumann model. We will learn to use functions such as `Reduce()`, `runif()`, and `ifelse()`.
+
+To simplify the models in poker, we don't see cards as individuals, instead we generalize. There are two types of cards: cards that will give us a win, and cards that will give us a lose. We name the cards that will give us a win as **outs**.
+
+Complement Rule:
+
+$$
+P(A) = 1 - P(A^c)
+$$ {#eq-Complement Rule}
+
+Suppose that there is just one card left to come, and you know that 8 of the 46 remaining cards in the deck will give you a win. Otherwise, you will lose.
+
+There is currently \$50 in the pot, and you are currently facing a \$10 bet from your opponent. Assuming no further betting, then, from this point, if you call the bet and win, your profit is \$50. If you call the bet and lose, your profit is negative \$10.
+
+```{r}
+#| label: Texas Hold'em expected value with one card to come (river)
+#| echo: TRUE
+
+p_win <- 8 / 46
+curr_pot <- 50
+bet <- 10
+
+# Define vector of probabilities
+probs <- c(p_win, 1-p_win)
+
+# Define vector of values
+values <- c(50, -10)
+
+# Calculate expected value
+print(paste("The expected value of the hand is", round(sum(probs * values), 4), sep = " "))
+```
+
+Let's now consider the point at which two cards will still come (the turn). Here, we will find the **probability of winning for any number of outs.**
+
+At this point, there are 3 cards face up, and 2 in your hand. With 52 total cards in the deck, this leaves 47 unseen cards, so the denominator is ${47\choose 2}$ to represent the total number of combinations for the two cards to come.
+
+An often-used approximation among poker players is that the win probability is equal to:
+
+$$
+({{4*outs}\over 100})
+$$
+
+How good is this approximation?
+
+```{r}
+#| label: Two cards to come
+#| echo: TRUE
+
+outs <- c(0:25)
+
+# Calculate probability of not winning
+p_no_outs <- choose(47-outs, 2)/choose(47, 2)
+
+# Calculate probability of winning
+p_win <- 1 - p_no_outs
+
+p_win_table <- matrix(data = p_win, ncol = 25, nrow = 1)
+colnames(p_win_table) <- paste0(0:24, " outs")
+print(p_win_table)
+
+#the approximation is within 1% up to 8 outs, and then worsens from there.
+```
+
+```{r}
+#| label: Probability of Winning Function
+#| echo: TRUE
+
+outs <- 3
+remaining_cards <- remaining_card_in_deck(4, "flop")
+commuCard_left <- 2
+
+p_lose <- choose(remaining_cards-outs, commuCard_left) / choose(remaining_cards, commuCard_left)
+
+p_win <- 1-p_lose
+
+p_lose
+p_win
+
+# ---
+
+remaining_card_in_deck <- function(n_players, betting_round, deck = 52) {
+  
+  # Define valid betting rounds
+  valid_rounds <- c("pre_flop", "flop", "turn", "river")
+  
+  # Convert string betting round to numeric if necessary
+  if (is.character(betting_round)) {
+    betting_round <- match(betting_round, valid_rounds)
+  }
+  
+  # Ensure betting_round is within the valid range
+  if (!betting_round %in% c(1, 2, 3, 4)) {
+    stop("Invalid betting round. Use 1-4 or one of 'pre_flop', 'flop', 'turn', 'river'.")
+  }
+  
+  # Number of cards used so far
+  cards_dealt <- n_players * 2  # Each player gets 2 hole cards
+  
+  if (betting_round >= 2) {  # Community cards are dealt in later rounds
+    cards_dealt <- cards_dealt + 3  # Flop (3 cards)
+  }
+  if (betting_round >= 3) {
+    cards_dealt <- cards_dealt + 1  # Turn (1 more card)
+  }
+  if (betting_round == 4) {
+    cards_dealt <- cards_dealt + 1  # River (1 more card)
+  }
+  
+  # Calculate remaining cards in deck
+  remaining_cards <- deck - cards_dealt
+  
+  return(remaining_cards)
+}
+
+# Example Usage:
+remaining_card_in_deck(4, "flop")   # Should return remaining cards after the flop
+remaining_card_in_deck(6, 3)        # Should return remaining cards after the turn
+remaining_card_in_deck(2, 1)
+
+```
+
+### Probability of Consecutively Reaching the Final Table
+
+In 2010 through 2014, a poker professional named Ronnie Bardah cashed all five years. He garnered much attention for doing so, and the question is, from a probabilistic standpoint, how remarkable was this?
+
+**Simplifying assumptions**
+
+We will make some simplifying assumptions to make this problem more manageable. First, we will assume that there are exactly 6,000 entrants each year and that it is the same 6,000 players each year. We also assume that every player has exactly the same ability. While this is not true in reality, it will give us an idea of the probability that we could expect completely by chance.
+
+**The intersection function**
+
+Suppose there are 20 players in a given tournament. Under our simplifying assumptions, each player has the same probability of cashing, so we can use the sample function to simulate who will cash. Suppose that in year 1, we allow 4 people to cash. We can do the same thing for the next year as well. If we want to check whether anyone cashed in both years, by checking if any individual appears in both, we can use the intersect function.
+
+**Storing cashes as a matrix**
+
+Now, the challenge in our lesson is that we actually want the intersection of not just two years, but five consecutive years. To do this, it will help to store our results in a matrix, which is done automatically if we generate our results using the replicate function. When used along with a function that will output a vector, replicate will store each iteration in a column of a matrix. The code here demonstrates this with three years.
+
+**The Reduce function**
+
+`Reduce(f, x, init)`
+
+With our cashes stored as a matrix, we can operate on all of them together using the Reduce function. Reduce is similar to `sapply()`, in that it will iterate a function through an object. However, it performs pairwise operations on that object, as opposed to `sapply()`, which simply operates on each element of a vector. The input to `Reduce()` must be a list, so we can use the list function on each column of our cashes matrix. When indexing cashes, we leave the first index blank to indicate that we want every row and then specify which column. The integer zero is returned since there is no one who cashed in all three years. More helpful to us from a coding perspective is that the length is zero. If anyone did cash in all three years, then the length of the in underscore all underscore three variable would be greater than 0.
+
+```{r}
+#| label: Two consecutive years
+#| echo: TRUE
+
+players <- c(1:60)
+count_ft <- 0
+
+for(i in 1:10000){
+  cash_year1 <- sample(players, 6)
+  cash_year2 <- sample(players, 6)
+  # Find those who cashed both years
+  cash_both <- Reduce(intersect, 
+                      list(cash_year1, cash_year2))
+  # Check whether anyone cashed both years
+  if(length(cash_both)>0){
+    count_ft <- count_ft + 1
+  }  
+}
+
+print(count_ft/10000)
+```
+
+We assume 6,000 players, and each player will be represented by a number from 1 through 6,000. Under the assumption that 10% of all players will cash, the input to the function will be a matrix with five columns, one for each year, and 600 rows, one per cashing player.
+
+```{r}
+#| label: Function to evaluate set of five years
+#| echo: TRUE
+
+check_for_five <- function(cashed){
+  # Find intersection of five years
+  all_five <- Reduce(intersect, list(cashed[, 1], cashed[, 2], cashed[, 3], cashed[, 4], cashed[, 5]))
+  # Check intersection
+  if(length(all_five)>0){
+    return(TRUE)
+  # Specify when to return FALSE
+  } else {
+    return(FALSE)
+  }
+}
+
+ejemplo_5 <- matrix(data = c(1:5), 
+                  ncol = 5,
+                  nrow = 1)
+
+check_for_five(ejemplo_5)
+```
+
+Try a generalization of a function to evaluate probability of n consecutive years.
+
+```{r}
+#| label: General function to evaluate probability of consecutive years
+#| echo: TRUE
+
+final_table_years <- 5
+players <- 6000
+cashing_players <- 600
+
+
+#---
+
+players_in_FT <- replicate(final_table_years,
+                           sample(x = players, 
+                                  size = cashing_players))
+
+# cashed_n must be a matrix
+Prob_n_consecutive_Y <- function(cashed_n){
+  
+  list_of_cashed_n <- lapply(seq_len(ncol(cashed_n)),
+                     function(i) cashed_n[, i])
+  
+  intersect_players <- Reduce(intersect,
+                              list_of_cashed_n)
+
+  
+  if(length(intersect_players) > 0){
+    return(TRUE)
+  } else {
+    return(FALSE)
+  }
+}
+
+Prob_n_consecutive_Y(players_in_FT)
+```
+
+### Von Neumann Model of Poker
+
+Rather than utilize actual cards, the von Neumann model stipulates that each player's hand is a random draw from a uniform 0 1 distribution. This means, roughly, that any real-numbered value between 0 and 1 is equally likely to occur. We can simulate this here using the `runif()` function in R, where the only argument we need to specify is `n`, since the default values of `min` and `max` are already what we want, 0 and 1. Evaluating which player wins is as simple as determining who has the higher value. Here, that is Player A.
+
+```{r}
+#| label: von Neumann example
+
+playerA <- runif(n = 1)
+playerB <- runif(n = 1)
+
+print(paste("Player A = ", round(playerA,3), "vs Player B =", round(playerB,3)))
+```
+
+**Betting under the von Neumann model**
+
+Wagering occurs as follows: Player B first observes their value and decides whether to wager one dollar or not. If it is wagered, the two players compare their values and the higher value wins. Otherwise, no money is won or lost by either player. Since Player B has all of the decision-making power, it stands to reason that Player B has the advantage.
+
+Previously, we have used `if()` and `else()` statements separately. An alternate approach is to use the `ifelse()` function, which is particularly useful when the only thing that occurs as a result of the condition is the output of a single value. When using the `ifelse()` function, the order of arguments is as follows: `ifelse(test, yes, no)`
+
+Previously, we used the `mean()` function to estimate a probability from a vector of `TRUE` and `FALSE`. We can also use it to estimate an expected value. Recall that the expected value is the true mean of the quantity of interest. Here, we will use the mean function to calculate an estimate of the expected value based on a set of simulated values. Using mean on such a set will calculate the arithmetic average, which is an estimate of the expected value.
+
+```{r}
+#| label: von Neumann poker function
+#| echo: TRUE
+
+# First one round under the von Neumann model, with betting incorporated.
+one_round <- function(bet_cutoff){
+  a <- runif(n = 1)
+  b <- runif(n = 1)
+  # Fill in betting condition
+  if(b > bet_cutoff){
+    # Return result of bet
+    return(result <- ifelse(b > a, 1, -1))
+  } else {
+    return(0)
+  }  
+}
+
+#---
+
+# simulate 10,000 iterations of the one_round function
+counter <- rep(NA, 10000)
+
+for(i in 0:10000){
+  
+  counter[i] <- one_round(0.95)
+  
+}
+
+print(sum(mean(counter)))
+```
+
+# 30 Suggested Problems by Chat GPT
+
+## **Beginner Level (1–10): Fundamental Probability and Simulation**
+
+1.  **Coin Flips – Basic Probability:**
+
+    -   Simulate flipping a fair coin 1000 times. What is the probability of getting exactly 500 heads?
+
+2.  **Dice Rolls – Sum of Two Dice:**
+
+    -   Simulate rolling two dice 10,000 times. What is the probability that the sum is 7?
+
+3.  **Cards – Drawing an Ace:**
+
+    -   What is the probability of drawing an Ace from a standard deck of 52 cards?
+
+4.  **Cards – Conditional Probability:**
+
+    -   Given that a card is a face card (Jack, Queen, King), what is the probability that it is a King?
+
+5.  **Stock Price – Simple Random Walk:**
+
+    -   Simulate a stock price starting at \$100 with daily returns drawn from N(0,0.012)N(0, 0.01\^2)N(0,0.012) for 250 days. Plot the price path.
+
+6.  **Expected Value – Coin Game:**
+
+    -   You win \$1 for heads and lose \$1 for tails. What is the expected value after 100 flips? Simulate it in R.
+
+7.  **Stock Price – Expected Value after n Days:**
+
+    -   Daily returns follow N(0,0.0152)N(0, 0.015\^2)N(0,0.0152). What is the expected price after 60 days if the stock starts at \$50?
+
+8.  **Foreign Exchange – Exchange Rate Simulation:**
+
+    -   Simulate USD/EUR exchange rate over 1 year with daily returns N(0,0.012)N(0, 0.01\^2)N(0,0.012). What is the probability the rate ends above 1.2 if it starts at 1.1?
+
+9.  **Dice – Expected Number of Rolls:**
+
+    -   You roll a fair die until you get a 6. What is the expected number of rolls? Simulate this.
+
+10. **Monte Carlo – Basic Option Pricing:**
+
+    -   Simulate a European call option price. Stock price: \$100, strike: \$105, risk-free rate: 2%, volatility: 20%, maturity: 1 year.
+
+## **Intermediate Level (11–20): Monte Carlo, Portfolio Simulation, Conditional Probability**
+
+11. **Monte Carlo – Asian Option:**
+
+    -   Price an Asian option where the payoff depends on the average stock price over 1 year.
+
+12. **Stock Price – Path Dependency:**
+
+    -   Simulate a stock price for 1 year with daily returns from N(0,0.0152)N(0, 0.015\^2)N(0,0.0152). What is the probability the price hits \$120 at any point if it starts at \$100?
+
+13. **Monte Carlo – Portfolio Value:**
+
+    -   Simulate a 2-asset portfolio with daily returns following N(μ1,σ12)N(\mu\_1, \sigma\_1\^2)N(μ1​,σ12​) and N(μ2,σ22)N(\mu\_2, \sigma\_2\^2)N(μ2​,σ22​), correlation ρ=0.3\rho=0.3ρ=0.3. Value over 1 year.
+
+14. **Foreign Exchange – Jump Process:**
+
+    -   Simulate an exchange rate with daily returns N(0,0.012)N(0, 0.01\^2)N(0,0.012) and a 5% chance of a 3% jump (up or down) each day.
+
+15. **Value-at-Risk (VaR):**
+
+    -   Using historical daily returns of a stock, estimate 1-day 95% VaR using Monte Carlo.
+
+16. **Barrier Option Pricing:**
+
+    -   Simulate and price a down-and-out call option. Knockout barrier: \$90, initial price: \$100, strike: \$105, 1 year maturity.
+
+17. **Conditional Probability – Dice Game:**
+
+    -   You roll two dice. What is the probability the sum is greater than 8 given that at least one die shows 4?
+
+18. **Insurance Risk – Aggregate Claims:**
+
+    -   Simulate aggregate insurance claims over a year. Number of claims follows Poisson(λ=10), each claim is Gamma-distributed with shape=2, scale=500.
+
+19. **Foreign Exchange Hedging:**
+
+    -   Simulate a hedging strategy for EUR liabilities with USD/EUR exchange rate modeled as a geometric Brownian motion. Evaluate risk reduction.
+
+20. **Rare Events – Fat Tails:**
+
+    -   Simulate stock returns using a t-distribution with df=3 instead of normal. Estimate the probability of a daily drop greater than 5%.
+
+## **Advanced Level (21–30): Bayesian Probability, Forecasts, Copulas, Multivariate Models**
+
+### **Bayesian Probability**
+
+21. **Bayesian Coin – Posterior Probability:**
+
+    -   A coin is either fair or biased with P(H)=0.7P(H) = 0.7P(H)=0.7. Prior: 50% fair, 50% biased. You observe 8 heads out of 10 flips. What is the posterior probability the coin is biased?
+
+22. **Bayesian Mean Estimation – Stock Returns:**
+
+    -   Assume stock daily returns follow N(μ,0.022)N(\mu, 0.02\^2)N(μ,0.022). Prior for μ∼N(0,0.012)\mu \sim N(0, 0.01\^2)μ∼N(0,0.012). After observing 100 days with mean return 0.001, compute the posterior mean and variance.
+
+23. **Bayesian Portfolio – Updating Covariance:**
+
+    -   You are estimating the covariance between two asset returns with uncertain prior. Use Bayesian updating after observing 60 days of returns.
+
+### **Time Series Forecasting**
+
+24. **AR(1) Process – Simulate and Forecast:**
+
+    -   Simulate an AR(1) process Xt=0.7Xt−1+ϵtX_t = 0.7 X\_{t-1} + \epsilon\_tXt​=0.7Xt−1​+ϵt​ where ϵt∼N(0,1)\epsilon\_t \sim N(0, 1)ϵt​∼N(0,1). Forecast 10 steps ahead using R.
+
+25. **GARCH(1,1) – Volatility Modeling:**
+
+    -   Fit a GARCH(1,1) model to daily returns of a stock and forecast the next 10-day volatility.
+
+26. **Monte Carlo – Stochastic Volatility Model:**
+
+    -   Simulate a Heston model for stock prices with stochastic volatility.
+
+### **Copulas, Tail Risk, Dependence Structures**
+
+27. **Copula – Bivariate Asset Returns:**
+
+    -   Simulate joint returns of two assets using a Gaussian copula with correlation 0.8. Estimate the probability that both returns are negative.
+
+28. **Tail Dependence – Extreme Co-movement:**
+
+    -   Simulate two asset returns with t-copula (df=4) and correlation 0.6. Estimate the probability that both fall by more than 5% on the same day.
+
+### **Advanced Options and Risk Models**
+
+29. **Monte Carlo – Exotic Option (Lookback):**
+
+    -   Price a lookback call option, where the payoff is based on the maximum price over the option's life.
+
+30. **Credit Risk – Default Correlation:**
+
+    -   Simulate default times of two companies under a Gaussian copula model. Default probabilities are 5% and 8%. Correlation: 0.3. Estimate the probability that both default in a year.
+
+## **Key Skills Practiced Across Problems:**
+
+-   Monte Carlo Simulations
+
+-   Conditional Probability
+
+-   Expected Value Computations
+
+-   Path-Dependent Options
+
+-   Bayesian Updating
+
+-   Time Series Models (AR, GARCH)
+
+-   Copula Modeling
+
+-   Extreme Events and Tail Risk
+
+# QUANT QUESTIONS .IO
+
+## Beginner Level: Probability
+
+1.  **Probability of Unfair Coin I:**
+
+    -   You have a pile of 100 coins. 1 of the coins is an unfair coin and has heads on both sides. The remaining 99 coins are fair coins. You randomly select a coin from the pile and flip it 10 times. The coin lands heads all 10 times. Calculate the probability that the coin you selected is the unfair coin.
+
+# BOOTSTRAPPING
+
+## ¿Para qué sirve el **bootstrapping**?
+
+Sirve para:
+
+-   **Estimar la incertidumbre (variabilidad)** de cualquier medida estadística (como la media, la desviación estándar, percentiles, etc.) cuando **no tenemos muchos datos**.
+
+-   **Construir intervalos de confianza** para esa medida.
+
+-   **Evaluar riesgos y proyecciones** cuando no podemos asumir que los rendimientos financieros siguen distribuciones teóricas como la normal.
+
+Es muy útil cuando **los supuestos teóricos (por ejemplo, que los rendimientos son normales) no se cumplen**, o **cuando tenemos pocos datos**.
+
+## ¿Cómo funciona el **bootstrapping**?
+
+El proceso es así:
+
+1.  **Tienes una muestra de datos históricos** (por ejemplo, rendimientos anuales de una acción durante 20 años).
+
+2.  **Tomas muestras aleatorias de esos datos**:
+
+    -   Con **reemplazos**: puedes seleccionar el mismo año más de una vez.
+
+    -   Sin **reemplazos**: seleccionas años distintos.
+
+3.  **Calculas la estadística de interés** (por ejemplo, el rendimiento medio) **para cada muestra**.
+
+4.  **Repites el proceso miles de veces** (por ejemplo, 5,000 veces).
+
+5.  **Obtienes una distribución de la estadística** (distribución del rendimiento medio anual).
+
+6.  Puedes **analizar esa distribución** para obtener:
+
+    -   Media esperada.
+
+    -   Variabilidad (desviación estándar).
+
+    -   Intervalos de confianza (por ejemplo, el rendimiento anual esperado con un 95% de certeza).
+
+## ¿Qué está haciendo el **bootstrapping** con la información financiera?
+
+Cuando aplicamos bootstrapping a rendimientos financieros, **estamos simulando posibles futuros escenarios** a partir del comportamiento pasado.
+
+Por ejemplo:
+
+-   Tienes **20 años de rendimientos anuales** de una acción.
+
+-   El **bootstrapping crea “versiones ficticias” de años futuros** combinando de formas distintas los rendimientos pasados.
+
+-   Esto **nos da una distribución de posibles rendimientos anuales futuros**.
+
+-   A partir de esa distribución, podemos **calcular riesgo, expectativa de rendimiento y probabilidad de pérdidas extremas**.
+
+Es como decir:
+
+> “Si el futuro se parece al pasado, pero en otro orden, ¿qué podría pasar?”
+
+## ¿Para qué se usa el **bootstrapping** en finanzas?
+
+### Algunos usos comunes:
+
+1.  **Estimación de riesgos**:
+
+    -   ¿Cuál es la variabilidad (riesgo) del rendimiento anual esperado?
+
+    -   ¿Cuáles son los rendimientos más bajos que podrías obtener con cierta probabilidad?
+
+2.  **Construcción de intervalos de confianza**:
+
+    -   ¿Cuál es el rango más probable de rendimientos anuales futuros?
+
+3.  **Valuación de portafolios**:
+
+    -   Simular escenarios futuros para evaluar la posible distribución del valor de tu portafolio.
+
+4.  **Estimación de distribuciones no normales**:
+
+    -   Si crees que los rendimientos **no siguen una distribución normal**, el bootstrapping te ayuda **a obtener una distribución más realista** usando solo tus datos.
+
+5.  **Construcción de curvas de tasas de interés (bootstrapping de tasas)**:
+
+    -   En bonos, se usa un enfoque llamado **bootstrapping de tasas** para construir **curvas de rendimiento** que no están directamente observadas en el mercado.
+
+## ¿Cuándo debo usar el **bootstrapping**?
+
+Lo deberías considerar cuando:
+
+-   **Tienes pocos datos** y quieres **evaluar la incertidumbre** de tus cálculos.
+
+-   **No estás seguro de que los datos sigan una distribución normal**.
+
+-   **Necesitas estimar intervalos de confianza** sin hacer suposiciones fuertes sobre la distribución.
+
+-   **Quieres explorar escenarios futuros posibles** basados en el comportamiento histórico.
+
+No es necesario si:
+
+-   **Tienes muchos datos** y puedes confiar en **aproximaciones teóricas**.
+
+-   **Los rendimientos claramente siguen una distribución normal** (aunque esto casi nunca ocurre en la realidad financiera).
+
+## ¿Por qué importa esto en **bootstrapping**?
+
+-   **Con reemplazo**: Es el enfoque más típico en bootstrapping porque te permite generar **muestras del mismo tamaño que el conjunto original** (aunque algunos valores se repitan), y es útil especialmente **cuando tienes pocos datos**.
+
+-   **Sin reemplazo**: Tiene sentido en casos como **barajear rendimientos** o **evaluar combinaciones únicas**. Pero **no es bootstrapping clásico**; es más una **permutación aleatoria** de tus datos.
+
+## Ejemplo en R con datos simulados usando `rnorm()`
+
+Vamos a simular que tenemos **los rendimientos mensuales de una acción** durante **5 años** (60 meses). Queremos:
+
+1.  **Estimar la media del rendimiento mensual esperado**.
+
+2.  **Evaluar la variabilidad de esa media usando bootstrapping con y sin reemplazos**.
+
+### Código en R:
+
+```{r}
+set.seed(123)
+
+# Simular rendimientos mensuales (60 meses, 5 años)
+rendimientos <- rnorm(60, mean = 0.01, sd = 0.05)  # Media 1%, Desviación estándar 5%
+
+# Bootstrapping con reemplazo
+bootstrap_con_reemplazo <- replicate(5000, {
+  muestra <- sample(rendimientos, size = 12, replace = TRUE)
+  mean(muestra)
+})
+
+# Bootstrapping sin reemplazo
+bootstrap_sin_reemplazo <- replicate(5000, {
+  muestra <- sample(rendimientos, size = 12, replace = FALSE)
+  mean(muestra)
+})
+
+# Visualizar las distribuciones
+library(ggplot2)
+
+df_bootstrap <- data.frame(
+  Media = c(bootstrap_con_reemplazo, bootstrap_sin_reemplazo),
+  Tipo = rep(c("Con Reemplazo", "Sin Reemplazo"), each = 5000)
+)
+
+ggplot(df_bootstrap, aes(x = Media, fill = Tipo)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Distribución de la Media del Rendimiento Mensual",
+       x = "Media del Rendimiento",
+       y = "Densidad") +
+  theme_minimal()
+
+```
+
+# Stochastic Processes
+
+```{r}
+#| label: Libraries Stochastic Processes
+#| echo: true
+#| message: false
+#| warning: false
+
+library(markovchain)
+
+```
+
+```{r}
+set.seed(456)
+
+t <- 0:100  # time
+sig2 <- 0.01
+## first, simulate a set of random deviates
+x <- rnorm(n = length(t) - 1, sd = sqrt(sig2))
+## now compute their cumulative sum
+x <- c(0, cumsum(x))
+plot(t, x, type = "l", ylim = c(-2, 2))
+```
+
+```{r}
+nsim <- 100
+X <- matrix(rnorm(n = nsim * (length(t) - 1), sd = sqrt(sig2)), nsim, length(t) - 
+    1)
+X <- cbind(rep(0, nsim), t(apply(X, 1, cumsum)))
+plot(t, X[1, ], xlab = "time", ylab = "phenotype", ylim = c(-2, 2), type = "l")
+apply(X[2:nsim, ], 1, function(x, t) lines(t, x), t = t)
+```
