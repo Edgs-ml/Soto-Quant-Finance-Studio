@@ -1,5 +1,5 @@
-<<<<<<< HEAD
 Version: 1.0
+ProjectId: ede7fc78-7174-4a79-a2fb-a309a39ddf46
 
 RestoreWorkspace: Default
 SaveWorkspace: Default
@@ -12,19 +12,3 @@ Encoding: UTF-8
 
 RnwWeave: Sweave
 LaTeX: pdfLaTeX
-=======
-Version: 1.0
-
-RestoreWorkspace: Default
-SaveWorkspace: Default
-AlwaysSaveHistory: Default
-
-EnableCodeIndexing: Yes
-UseSpacesForTab: Yes
-NumSpacesForTab: 2
-Encoding: UTF-8
-
-RnwWeave: Sweave
-LaTeX: pdfLaTeX 
-
->>>>>>> master
